@@ -107,6 +107,50 @@ float Adafruit_AM2320::readTemperature() {
 
 /**************************************************************************/
 /*!
+    @brief measure the average temperature.
+    @return the average of readings as a floating point value or nan if not ready.
+*/
+/**************************************************************************/
+float Adafruit_AM2320::readTemperatureAvg(int n_measurements, int time_interval) {
+  static float sum = 0;
+  static uint16_t count = 0;
+  static unsigned long previousMillis = 0;
+
+  // Guard against invalid parameters. time_interval must be at least 2000ms (2 seconds) as per datasheet.
+  if (n_measurements <= 0 || time_interval < 2000) {
+    sum = 0;
+    count = 0;
+    previousMillis = 0;
+    return NAN;
+  }
+
+  unsigned long currentMillis = millis();
+
+  // Only make measurements if the interval has been passed
+  if (currentMillis - previousMillis >= time_interval) {
+    previousMillis = currentMillis;
+
+    sum += readTemperature();
+    count++;
+
+    // If we have collected enough measurements, calculate the average and reset
+    if (count >= n_measurements) {
+      float average = sum / n_measurements;
+
+      // Reset static variables for the next cycle
+      sum = 0;
+      count = 0;
+      previousMillis = 0;
+      return average;
+    }
+  }
+
+  // If not enough measurements have been done yet, return NAN
+  return NAN;
+}
+
+/**************************************************************************/
+/*!
     @brief  read the humidity from the device
     @return the humidity reading as a floating point value
 */
